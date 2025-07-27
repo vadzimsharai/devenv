@@ -110,17 +110,19 @@ case "$1" in
   run|"")
     if ! is_installed; then
       install_devenv
+      printf "Do you want to run the terminal now? [Y/n] "
+      read answer
+      case "$answer" in
+        [Nn])
+          echo "To run Devenv later, use: devenv"
+          ;;
+        *)
+          run
+          ;;
+      esac
+    else
+      run
     fi
-    printf "Do you want to run the terminal now? [Y/n] "
-    read answer
-    case "$answer" in
-      [Nn])
-        echo "To run Devenv later, use: devenv"
-        ;;
-      *)
-        run
-        ;;
-    esac
     ;;
   *)
     echo "Usage: $0 [run|install|uninstall]"
