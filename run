@@ -1,0 +1,129 @@
+#!/bin/sh
+
+
+DEVENVDIR="$HOME/.devenv"
+DEVENVDIR_HOME="$HOME/.devenv.home"
+DEVENV_BIN="$HOME/.local/bin/devenv"
+DOCKER_COMPOSE_FILE="$DEVENVDIR/docker-compose.yaml"
+CONTAINER_NAME="terminal"
+
+is_installed() {
+   [ -L "$DEVENV_BIN" ] && docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"
+}
+
+install_devenv() {
+  echo "Installing Devenv..."
+
+  mkdir -p "$HOME/.local/bin"
+
+  for file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
+    if [ -f "$file" ]; then
+      if ! grep -Fxq 'export PATH="$HOME/.local/bin:$PATH"' "$file"; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$file"
+      fi
+    fi
+  done
+
+  # Source the correct shell rc file
+  if [ -n "$ZSH_VERSION" ]; then
+    SHELL_RC="$HOME/.zshrc"
+  elif [ -n "$BASH_VERSION" ]; then
+    SHELL_RC="$HOME/.bashrc"
+  else
+    SHELL_RC="$HOME/.profile"
+  fi
+
+  if [ -f "$SHELL_RC" ]; then
+    . "$SHELL_RC"
+  fi
+
+  if [ ! -d "$DEVENVDIR/.git" ]; then
+    git clone --quiet --depth=1 https://github.com/vadzimsharai/devenv.git "$DEVENVDIR" >/dev/null 2>&1
+    rm -rf "$DEVENVDIR/.git"
+  else
+    cd "$DEVENVDIR" >/dev/null 2>&1
+    git checkout -q main >/dev/null 2>&1
+    git pull --quiet >/dev/null 2>&1
+  fi
+
+  [ -L "$DEVENV_BIN" ] || ln -s "$DEVENVDIR/run" "$DEVENV_BIN"
+
+  mkdir -p "$DEVENVDIR_HOME"
+  docker compose -f "$DOCKER_COMPOSE_FILE" build
+
+  echo "Devenv installed"
+  printf "Press Enter to continue (will clear the screen)..."
+  read dummy_var
+  clear
+}
+
+uninstall_devenv() {
+  echo "Uninstalling Devenv..."
+
+  if [ -f "$DOCKER_COMPOSE_FILE" ]; then
+    docker compose -f "$DOCKER_COMPOSE_FILE" down --remove-orphans || true
+  fi
+
+  if docker images | grep -q "devenv-terminal"; then
+    docker rmi $(docker images | grep "devenv-terminal" | awk '{print $3}') || true
+  fi
+
+  printf "Do you also want to remove your Devenv home directory at %s? [y/N] " "$DEVENVDIR_HOME"
+  read answer
+  case "$answer" in
+    [Yy])
+      if [ -d "$DEVENVDIR_HOME" ]; then
+        if ! sudo rm -rf "$DEVENVDIR_HOME"; then
+          echo "Warning: Failed to remove $DEVENVDIR_HOME."
+          echo "You can manually remove it with:"
+          echo "  sudo rm -rf \"$DEVENVDIR_HOME\""
+        fi
+      fi
+      ;;
+  esac
+
+  [ -L "$DEVENV_BIN" ] && rm -f "$DEVENV_BIN"
+  [ -d "$DEVENVDIR" ] && rm -rf "$DEVENVDIR"
+
+  echo "Devenv uninstalled"
+}
+
+run() {
+  docker compose -f "$DOCKER_COMPOSE_FILE" up -d
+  docker exec -it -e "LANG=en_US.UTF-8" "$CONTAINER_NAME" /opt/devenv/shell/run.sh
+}
+
+stop() {
+  docker compose -f "$DOCKER_COMPOSE_FILE" stop
+}
+
+case "$1" in
+  install)
+    install_devenv
+    ;;
+  uninstall)
+    uninstall_devenv
+    ;;
+  stop)
+    stop
+    ;;
+  run|"")
+    if ! is_installed; then
+      install_devenv
+    fi
+    printf "Do you want to run the terminal now? [Y/n] "
+    read answer
+    case "$answer" in
+      [Nn])
+        echo "To run Devenv later, use: devenv"
+        ;;
+      *)
+        run
+        ;;
+    esac
+    ;;
+  *)
+    echo "Usage: $0 [run|install|uninstall]"
+    exit 1
+    ;;
+esac

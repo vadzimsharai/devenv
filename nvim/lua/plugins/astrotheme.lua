@@ -1,0 +1,224 @@
+return {
+    {
+        "AstroNvim/astrotheme",
+
+        config = function()
+
+            require("astrotheme").setup({
+                palette = "astrodark",
+                palettes = {
+                    astrodark = {
+                        syntax = {
+                            red = "#ff0066",
+                            blue = "#00ccff",
+                            green = "#00ff88",
+                            yellow = "#ffff00",
+                            purple = "#cc00ff",
+                            cyan = "#00ffff",
+                            orange = "#ff6600",
+                            comment = "#999999",
+                            text = "#e0e0e0",
+                            mute = "#777777"
+                        },
+                        ui = {
+                            red = "#ff0066",
+                            blue = "#00ccff",
+                            green = "#00ff88",
+                            yellow = "#ffff00",
+                            purple = "#cc00ff",
+                            cyan = "#00ffff",
+                            orange = "#ff6600",
+                            accent = "#cc00ff",
+                            tabline = "#0a0a0a",
+                            winbar = "#999999",
+                            tool = "#050505",
+                            base = "#050505",
+                            inactive_base = "#0a0a0a",
+                            statusline = "#0a0a0a",
+                            split = "#333333",
+                            float = "#050505",
+                            title = "#cc00ff",
+                            border = "#00ffff",
+                            current_line = "#111111",
+                            scrollbar = "#cc00ff",
+                            selection = "#1a1a1a",
+                            menu_selection = "#1a1a1a",
+                            highlight = "#111111",
+                            none_text = "#555555",
+                            text = "#e0e0e0",
+                            text_active = "#ffffff",
+                            text_inactive = "#999999",
+                            text_match = "#00ffff",
+                            prompt = "#0a0a0a"
+                        },
+                        term = {
+                            black = "#050505",
+                            bright_black = "#0a0a0a",
+                            red = "#ff0066",
+                            bright_red = "#ff3388",
+                            green = "#00ff88",
+                            bright_green = "#33ffaa",
+                            yellow = "#ffff00",
+                            bright_yellow = "#ffff33",
+                            blue = "#00ccff",
+                            bright_blue = "#33ddff",
+                            purple = "#cc00ff",
+                            bright_purple = "#dd33ff",
+                            cyan = "#00ffff",
+                            bright_cyan = "#33ffff",
+                            white = "#e0e0e0",
+                            bright_white = "#ffffff",
+                            background = "#000000",
+                            foreground = "#e0e0e0"
+                        },
+                        icon = {
+                            c = "#00ccff",
+                            css = "#00ffff",
+                            deb = "#cc00ff",
+                            docker = "#00ccff",
+                            html = "#ff0066",
+                            jpeg = "#cc00ff",
+                            jpg = "#cc00ff",
+                            js = "#ffff00",
+                            jsx = "#00ccff",
+                            kt = "#00ff88",
+                            lock = "#ffff00",
+                            lua = "#00ccff",
+                            mp3 = "#cc00ff",
+                            mp4 = "#cc00ff",
+                            out = "#e0e0e0",
+                            png = "#cc00ff",
+                            py = "#00ccff",
+                            rb = "#ff0066",
+                            robots = "#e0e0e0",
+                            rpm = "#ff0066",
+                            rs = "#ff6600",
+                            toml = "#00ff88",
+                            ts = "#00ccff",
+                            ttf = "#e0e0e0",
+                            vue = "#00ff88",
+                            woff = "#e0e0e0",
+                            woff2 = "#e0e0e0",
+                            zip = "#ffff00",
+                            md = "#00ccff",
+                            pkg = "#cc00ff"
+                        }
+                    }
+                },
+                highlights = {
+                    global = {
+
+                        Comment = {fg = "#666666", bg = "NONE", italic = true},
+
+                        Constant = {fg = "#ff6600", bg = "NONE"},
+                        String = {fg = "#E394DC", bg = "NONE"},
+                        Character = {fg = "#E394DC", bg = "NONE"},
+                        Number = {fg = "#ffff00", bg = "NONE"},
+                        Boolean = {fg = "#ffff00", bg = "NONE"},
+                        Float = {fg = "#ffff00", bg = "NONE"},
+
+                        Identifier = {fg = "#FFA66A", bg = "NONE"},
+                        Function = {fg = "#00ff88", bg = "NONE", bold = true},
+
+                        Statement = {fg = "#cc00ff", bg = "NONE"},
+                        Conditional = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        Repeat = {fg = "#cc00ff", bg = "NONE", italic = true},
+                        Label = {fg = "#00ccff", bg = "NONE"},
+                        Operator = {fg = "#ffff00", bg = "NONE"},
+                        Keyword = {fg = "#cc00ff", bg = "NONE", italic = true},
+                        Exception = {fg = "#ff0066", bg = "NONE"},
+
+                        PreProc = {fg = "#ffff00", bg = "NONE"},
+                        Include = {fg = "#cc00ff", bg = "NONE"},
+                        Define = {fg = "#cc00ff", bg = "NONE"},
+                        Macro = {fg = "#ff6600", bg = "NONE"},
+                        PreCondit = {fg = "#00ccff", bg = "NONE"},
+
+                        Type = {fg = "#0099ff", bg = "NONE", bold = true},
+                        StorageClass = {
+                            fg = "#0099ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        Structure = {fg = "#0099ff", bg = "NONE", bold = true},
+                        Typedef = {fg = "#0099ff", bg = "NONE"},
+
+                        Special = {fg = "#00ffff", bg = "NONE"},
+                        SpecialChar = {fg = "#ff6600", bg = "NONE"},
+                        Tag = {fg = "#00ccff", bg = "NONE"},
+                        Delimiter = {fg = "#ffff00", bg = "NONE"},
+                        SpecialComment = {fg = "#828282", bg = "NONE"},
+                        Debug = {fg = "#00ccff", bg = "NONE"},
+
+                        Underlined = {
+                            fg = "#00ffff",
+                            bg = "NONE",
+                            underline = true
+                        },
+                        Ignore = {fg = "NONE", bg = "NONE"},
+                        Error = {fg = "#ff0066", bg = "NONE", bold = true},
+                        Todo = {fg = "#0099ff", bg = "NONE", bold = true},
+
+                        ["@keyword.function"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@keyword.modifier"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@keyword.class"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@keyword.export"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@variable.builtin"] = {fg = "#ff6600", bg = "NONE"},
+                        ["@constructor"] = {
+                            fg = "#0099ff",
+                            bg = "NONE",
+                            bold = true
+                        },
+                        ["@method"] = {fg = "#00ff88", bg = "NONE", bold = true},
+                        ["@property"] = {fg = "#8DFFCA", bg = "NONE"},
+
+                        ["@keyword"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@keyword.return"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@keyword.conditional"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+                        ["@keyword.repeat"] = {
+                            fg = "#cc00ff",
+                            bg = "NONE",
+                            italic = true
+                        },
+
+                        NeoTreeDirectoryName = {fg = "#00ffff", bg = "NONE"}
+                    }
+                }
+
+            })
+
+        end
+    }
+}

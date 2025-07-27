@@ -1,0 +1,19 @@
+name: devenv
+
+services:
+  terminal:
+    build: .
+    container_name: terminal
+    volumes:
+      - ~/.devenv:/opt/devenv
+      - ~/.devenv.home:/root/
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /root/
+    stdin_open: true
+    tty: true
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - TERM=xterm-256color
+      - COLORTERM=truecolor
+      - SHELL=/bin/zsh
