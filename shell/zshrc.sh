@@ -19,15 +19,19 @@ eval "$(pyenv init -)"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
+export GOPATH="$HOME/.go"
+export PATH="$PATH:$GOPATH/bin"
+
 export PATH="$PATH:/usr/local/bin"
-export PATH="$PATH:/usr/local/go/bin"
-export PATH="$PATH:/root/.local/bin"
-export PATH="$PATH:/opt/nvim/bin"
+export PATH="$PATH:$HOME/.local/bin"
+
+export PATH="$PATH:$HOME/.nvim/bin"
 
 export LANGUAGE="en_US.UTF-8"
 export LANG="en_US.UTF-8"
 export LC_ALL=C
 export TERM="xterm-256color"
 
-. ~/.aliases
-. ~/.funcs
+. $HOME/.aliases
+. $HOME/.funcs
+

@@ -1,5 +1,7 @@
+alias c='clear'
 alias vi='nvim'
 alias v='nvim'
+alias vv='nvim +":terminal"'
 alias py='python3'
 alias n='node'
 alias ll='ls -alF'

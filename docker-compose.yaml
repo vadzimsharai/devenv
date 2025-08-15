@@ -5,10 +5,10 @@ services:
     build: .
     container_name: terminal
     volumes:
-      - ~/.devenv:/opt/devenv
-      - ~/.devenv.home:/root/
+      - /opt/devenv:/opt/devenv
+      - /home/devenv:/home/devenv/
       - /var/run/docker.sock:/var/run/docker.sock
-    working_dir: /root/
+    working_dir: /home/devenv/
     stdin_open: true
     tty: true
     network_mode: host

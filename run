@@ -1,90 +1,233 @@
 #!/bin/sh
 
+set -e
 
-DEVENVDIR="$HOME/.devenv"
-DEVENVDIR_HOME="$HOME/.devenv.home"
+DEVENVDIR="/opt/devenv"
+DEVENVDIR_HOME="/home/devenv"
 DEVENV_BIN="$HOME/.local/bin/devenv"
 DOCKER_COMPOSE_FILE="$DEVENVDIR/docker-compose.yaml"
 CONTAINER_NAME="terminal"
 
-is_installed() {
-   [ -L "$DEVENV_BIN" ] && docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"
+if [ -f "$HOME/.zshrc" ] ; then
+    SHELL_TYPE="zsh"
+elif [ -f "$HOME/.bashrc" ] ; then
+    SHELL_TYPE="bash"
+else
+   SHELL_TYPE="sh"
+fi
+
+export DEVENV_VERSION=${DEVENV_VERSION:-main}
+export DEVENV_PASS=${DEVENV_PASS:-}
+
+install_git() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "Error: 'git' is not installed."
+    echo ""
+    echo "Devenv requires Git to be installed on your system."
+    echo "To install Git, follow the official guide: https://git-scm.com/downloads/linux"
+    echo ""
+    echo "Quick example install on Linux:"
+    echo "  sudo apt update && sudo apt install -y git"
+    exit 1
+  fi
+}
+
+install_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Error: Docker is not installed."
+    printf "Would you like to install Docker now? [Y/n]: "
+    read answer
+    case "$answer" in
+      [Nn]*)
+        echo "Docker is required. Exiting."
+        exit 1
+        ;;
+      *)
+        echo "Installing Docker..."
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        rm get-docker.sh
+        sudo usermod -aG docker devenv
+        echo "Docker installed. You may need to log out and back in for group changes to take effect."
+        ;;
+    esac
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker is not running or you don't have permission to access it."
+    echo "Please start Docker or add your user to the docker group."
+    exit 1
+  fi
+}
+
+ask_for_devenv_pass() {
+  if [ -z "${DEVENV_PASS:-}" ]; then
+    printf "Enter password for 'devenv' user (leave empty to generate a random one): "
+    read -r input_pass
+    if [ -z "$input_pass" ]; then
+      DEVENV_PASS="$(openssl rand -base64 12 | tr -d '=+/' | cut -c1-16)"
+      echo "Generated random password for 'devenv': $DEVENV_PASS"
+    else
+      DEVENV_PASS="$input_pass"
+    fi
+    export DEVENV_PASS
+  fi
+}
+
+setup_devenv_local_shell() {
+  if ! id "devenv" >/dev/null 2>&1; then
+    ask_for_devenv_pass
+    sudo useradd -m -s /bin/$SHELL_TYPE devenv
+    sudo usermod -aG docker devenv
+    sudo echo "devenv ALL=(ALL) ALL" >> /etc/sudoers
+    echo "devenv:$DEVENV_PASS" | sudo chpasswd
+  fi
+
+  sudo mkdir -p /home/devenv
+  sudo chown devenv:devenv /home/devenv
+  
+  mkdir -p "$HOME/.local/bin"
+
+
+  PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
+
+  for rc in "$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile"; do
+    [ -f "$rc" ] || continue
+    if ! grep -Fxq "$PATH_LINE" "$rc"; then
+        printf '\n%s\n' "$PATH_LINE" >>"$rc"
+        printf 'Updated PATH in %s\n' "$rc"
+	echo "$rc updated"
+    fi
+  done
+
+  export PATH="$HOME/.local/bin:$PATH"
+  
+  [ -L "$DEVENV_BIN" ] || ln -s "$DEVENVDIR/run" "$DEVENV_BIN"
+  echo "Symlink 'devenv' created in $HOME/.local/bin"
+}
+
+setup_devenv_repository() {
+  git config --global --add safe.directory /opt/devenv
+
+  if [ ! -d "$DEVENVDIR/.git" ]; then
+    git clone -q https://github.com/vadzimsharai/devenv "$DEVENVDIR" 
+    sudo chown -R devenv:devenv "$DEVENVDIR" 
+    cd "$DEVENVDIR" 
+    git checkout "$DEVENV_VERSION" 
+  else
+    cd "$DEVENVDIR" 
+    git fetch -q 
+    git checkout "$DEVENV_VERSION" 
+    git pull -q origin "$DEVENV_VERSION" 
+  fi
+}
+
+build_and_run_devenv_container() {
+  docker compose -f "$DOCKER_COMPOSE_FILE" build
+  docker compose -f "$DOCKER_COMPOSE_FILE" up -d
+  docker exec -i -u root $CONTAINER_NAME zsh -c "echo 'devenv:$DEVENV_PASS' | chpasswd"
+  docker exec -i $CONTAINER_NAME zsh "/opt/devenv/shell/setup.sh"
 }
 
 install_devenv() {
   echo "Installing Devenv..."
 
-  mkdir -p "$HOME/.local/bin"
-
-  for file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
-    if [ -f "$file" ]; then
-      if ! grep -Fxq 'export PATH="$HOME/.local/bin:$PATH"' "$file"; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$file"
-      fi
-    fi
-  done
-
-  # Source the correct shell rc file
-  if [ -n "$ZSH_VERSION" ]; then
-    SHELL_RC="$HOME/.zshrc"
-  elif [ -n "$BASH_VERSION" ]; then
-    SHELL_RC="$HOME/.bashrc"
-  else
-    SHELL_RC="$HOME/.profile"
-  fi
-
-  if [ -f "$SHELL_RC" ]; then
-    . "$SHELL_RC"
-  fi
-
-  if [ ! -d "$DEVENVDIR/.git" ]; then
-    git clone --quiet --depth=1 https://github.com/vadzimsharai/devenv.git "$DEVENVDIR" >/dev/null 2>&1
-    rm -rf "$DEVENVDIR/.git"
-  else
-    cd "$DEVENVDIR" >/dev/null 2>&1
-    git checkout -q main >/dev/null 2>&1
-    git pull --quiet >/dev/null 2>&1
-  fi
-
-  [ -L "$DEVENV_BIN" ] || ln -s "$DEVENVDIR/run" "$DEVENV_BIN"
-
-  mkdir -p "$DEVENVDIR_HOME"
-  docker compose -f "$DOCKER_COMPOSE_FILE" build
+  install_git
+  install_docker
+  ask_for_devenv_pass
+  setup_devenv_local_shell
+  setup_devenv_repository
+  build_and_run_devenv_container
 
   echo "Devenv installed"
-  printf "Press Enter to continue (will clear the screen)..."
-  read dummy_var
-  clear
 }
 
-uninstall_devenv() {
-  echo "Uninstalling Devenv..."
-
+cleanup_docker_resources() {
   if [ -f "$DOCKER_COMPOSE_FILE" ]; then
     docker compose -f "$DOCKER_COMPOSE_FILE" down --remove-orphans || true
+  else
+    if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+      docker stop "$CONTAINER_NAME" || true
+      docker rm "$CONTAINER_NAME" || true
+    fi
   fi
 
   if docker images | grep -q "devenv-terminal"; then
     docker rmi $(docker images | grep "devenv-terminal" | awk '{print $3}') || true
   fi
+}
 
-  printf "Do you also want to remove your Devenv home directory at %s? [y/N] " "$DEVENVDIR_HOME"
+cleanup_user() {
+  if id "devenv" >/dev/null 2>&1; then
+    sudo userdel devenv || true
+  fi
+}
+
+cleanup_home_directory() {
+  printf "Do you also want to remove your Devenv home directory at %s?\n" "$DEVENVDIR_HOME"
+  printf "Type 'delete home dir' to confirm, or anything else to skip: "
   read answer
-  case "$answer" in
-    [Yy])
-      if [ -d "$DEVENVDIR_HOME" ]; then
-        if ! sudo rm -rf "$DEVENVDIR_HOME"; then
-          echo "Warning: Failed to remove $DEVENVDIR_HOME."
-          echo "You can manually remove it with:"
-          echo "  sudo rm -rf \"$DEVENVDIR_HOME\""
-        fi
+  if [ "$answer" = "delete home dir" ]; then
+    if [ -d "$DEVENVDIR_HOME" ]; then
+      WORKSPACE_DIR="$DEVENVDIR_HOME/workspace"
+      if [ -d "$WORKSPACE_DIR" ]; then
+        BACKUP_DIR="$HOME/.devenv.$(date +%Y%m%d%H%M%S).bkp"
+        while true; do
+          printf "Do you want to backup your workspace directory (%s) to %s/workspace before deletion? [Y/n]: " "$WORKSPACE_DIR" "$BACKUP_DIR"
+          read backup_answer
+          case "$backup_answer" in
+            [Yy]*|"")
+              mkdir -p "$BACKUP_DIR"
+              if cp -a "$WORKSPACE_DIR" "$BACKUP_DIR/"; then
+                echo "Workspace backed up to $BACKUP_DIR/workspace"
+                break
+              else
+                echo "Warning: Failed to backup workspace."
+                printf "There was an error backing up your workspace. Do you want to try again? [y/N]: "
+                read try_again
+                case "$try_again" in
+                  [Yy]*) continue ;;
+                  *) echo "Skipping workspace backup."; break ;;
+                esac
+              fi
+              ;;
+            [Nn]*)
+              echo "Skipping workspace backup."
+              break
+              ;;
+            *)
+              echo "Invalid input. Please answer y or n."
+              ;;
+          esac
+        done
       fi
-      ;;
-  esac
 
+      if ! sudo rm -rf "$DEVENVDIR_HOME"; then
+        echo "Warning: Failed to remove $DEVENVDIR_HOME."
+        echo "You can manually remove it with:"
+        echo "  sudo rm -rf \"$DEVENVDIR_HOME\""
+      fi
+    fi
+  else
+    echo "Skipped removal of $DEVENVDIR_HOME. You can manually remove it with:"
+    echo "  sudo rm -rf \"$DEVENVDIR_HOME\""
+  fi
+}
+
+cleanup_devenv_files() {
+  # TODO: ask
   [ -L "$DEVENV_BIN" ] && rm -f "$DEVENV_BIN"
-  [ -d "$DEVENVDIR" ] && rm -rf "$DEVENVDIR"
+  # [ -d "$DEVENVDIR" ] && rm -rf "$DEVENVDIR"
+}
 
+uninstall_devenv() {
+  echo "Uninstalling Devenv..."
+
+  cleanup_docker_resources
+  cleanup_devenv_files
+  cleanup_user
+  cleanup_home_directory
+  
   echo "Devenv uninstalled"
 }
 
@@ -97,35 +240,43 @@ stop() {
   docker compose -f "$DOCKER_COMPOSE_FILE" stop
 }
 
-case "$1" in
-  install)
-    install_devenv
-    ;;
-  uninstall)
-    uninstall_devenv
-    ;;
-  stop)
-    stop
-    ;;
-  run|"")
-    if ! is_installed; then
-      install_devenv
-      printf "Do you want to run the terminal now? [Y/n] "
-      read answer
-      case "$answer" in
-        [Nn])
-          echo "To run Devenv later, use: devenv"
-          ;;
-        *)
-          run
-          ;;
-      esac
-    else
-      run
-    fi
+prompt_run_after_install() {
+  printf "Do you want to run the terminal now? [Y/n] "
+  read answer
+  case "$answer" in
+  [Nn])
+    echo "To run Devenv later, use: devenv"
     ;;
   *)
-    echo "Usage: $0 [run|install|uninstall]"
-    exit 1
+    clear
+    run
     ;;
+  esac
+}
+
+case "$1" in
+install)
+  install_devenv
+  ;;
+uninstall)
+  uninstall_devenv
+  ;;
+stop)
+  stop
+  ;;
+run | "")
+  if docker ps -a --format '{{.Names}}' | grep -Fxq "$CONTAINER_NAME"; then
+    run
+  else
+    install_devenv
+    prompt_run_after_install
+  fi
+  ;;
+*)
+  echo "Usage: $0 [run|install|uninstall|stop]"
+  echo "Environment variables:"
+  echo "  DEVENV_VERSION=main    DevEnv version to install (git branch / tag)"
+  echo "  DEVENV_PASS=password    \`devenv\` user password (randomly generated if not set)"
+  exit 1
+  ;;
 esac

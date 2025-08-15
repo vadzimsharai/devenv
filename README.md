@@ -7,25 +7,24 @@ Everything runs in a **Docker** container so your host machine stays clean and r
 
 ## 1. Prerequisites
 
-Devenv itself is distributed as a Docker image, so Docker **must** be installed first.
+### Docker
+
+Devenv itself is distributed as a Docker image, so Docker **must** be installed first.  
+If Docker is not found, the install script will prompt you to install it automatically.
 
 _Official install guide_: <https://docs.docker.com/engine/install/>
+
+
+### Git
+
+Devenv expects [Git](https://git-scm.com/) to be available on your system, as it is required for many development workflows and for fetching configuration files.
+
+If Git is not already installed, you can install it using your package manager.  
+See the official guide for platform-specific instructions: <https://git-scm.com/downloads/linux>
 
 <details>
 <summary>Quick example install on Linux</summary>
 
-```bash
-# Download the convenience script
-curl -fsSL https://get.docker.com -o get-docker.sh
-
-# Review what the script will do (no changes are made with --dry-run)
-sudo sh ./get-docker.sh --dry-run
-
-# Run for real (remove --dry-run once you’re satisfied)
-sudo sh ./get-docker.sh
-```
-
-</details>
 
 ---
 
